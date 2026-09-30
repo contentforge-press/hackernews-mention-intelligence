@@ -26,6 +26,10 @@ export function renderHome() {
 <label class="muted">Try free — keyword</label>
 <div class="row"><input id="t" value="openai"><button onclick="run()">Get snapshot</button></div>
 <pre id="out">// result</pre>
+<div id="up" style="display:none;border-color:#ff6a3d;background:linear-gradient(180deg,rgba(255,106,61,.12),var(--card))">
+<b>That's the current state.</b><p class="muted">A <code>$0.05</code> changes call shows exactly what's new since your last check — new discussions and threads gaining traction. Watching buzz continuously with alerts starts at $99/month.</p>
+<div class="row"><a href="/pricing"><button type="button">See plans</button></a></div>
+</div>
 </div>
 <div class="grid">
 <div class="card"><b>Free</b><p class="muted">Mentions 7d/30d, latest threads</p><code>/v1/snapshot</code></div>
@@ -40,7 +44,7 @@ export function renderHome() {
 <p class="muted"><a href="/pricing">pricing</a> · <a href="/dashboard">dashboard</a> · <a href="/health">health</a> · <a href="/terms">terms</a> · <a href="/privacy">privacy</a> · <a href="/contact">contact</a></p>
 <script>
 async function run(){const o=document.getElementById('out');o.textContent='loading…';
- try{const r=await fetch('/v1/snapshot?target='+encodeURIComponent(document.getElementById('t').value));o.textContent=JSON.stringify(await r.json(),null,2);}
+ try{const r=await fetch('/v1/snapshot?target='+encodeURIComponent(document.getElementById('t').value));o.textContent=JSON.stringify(await r.json(),null,2);document.getElementById('up').style.display='block';}
  catch(e){o.textContent='error '+e;}}
 </script>`);
 }
