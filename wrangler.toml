@@ -1,0 +1,11 @@
+name = "hn-intel"
+main = "src/worker.js"
+compatibility_date = "2025-03-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[kv_namespaces]]
+binding = "INTEL_KV"
+id = "c90eefaf126b4f1dbfface3c7ceaaf98"
+
+[triggers]
+crons = ["0 8 * * *"]
