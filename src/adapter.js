@@ -131,6 +131,15 @@ export const adapter = {
         const t = parseTarget(targetStr); const s = await fetchSnapshot(t);
         return { target: s.handle, keyword: s.meta.keyword, note: 'first_snapshot_baseline', latest: s.items.slice(0, 10) };
     },
+    winEvidence(kind, args, result) {
+        const d = result?.data ?? result;
+        if (kind === 'changes') return `Checked HN discussions for "${args.target}": ${d.latest?.length || 0} recent threads fetched`;
+        if (kind === 'intel') return `Buzz-intel report for "${args.target}"`;
+        if (kind === 'batch') return `Scanned ${d.scanned ?? (args.targets || []).length} keywords`;
+        if (kind === 'landscape') return `Mindshare landscape across ${(args.targets || []).length} keywords`;
+        return `${kind} call`;
+    },
+    cliAttribution: `${TITLE} — free via x402 · remove attribution with Hobby $9/mo`,
     async _report(targetStr) {
         const t = parseTarget(targetStr); const s = await fetchSnapshot(t);
         return buildReport(s.meta, s.items, []);
