@@ -1,26 +1,81 @@
-# HackerNews Mention Intelligence
+# 📰 HackerNews Mention Intelligence
 
-AI-native monitoring of brand / product / keyword mentions on Hacker News — new discussions, points, comments and momentum. Sold as an MCP server with pay-per-result (x402 USDC on Base) and monthly subscriptions.
+![MCP](https://img.shields.io/badge/MCP-Streamable%20HTTP-7c3aed)
+![x402](https://img.shields.io/badge/x402-v1%20%2B%20v2-6938ef)
+![USDC](https://img.shields.io/badge/settle-USDC%20on%20Base-1f6feb)
+![price](https://img.shields.io/badge/from-%240.05%2Fcall-2ea043)
 
-## Five result tiers
-| Tool | Price | What it returns |
+Monitor brand, product and keyword mentions on Hacker News — new threads, points and momentum.
+
+Agents pay **peer-to-peer in USDC on Base** using the native **x402** protocol — no platform account, no payment processor, **0% commission**. You can also use a monthly key. One key works across the [whole Change Intelligence family](https://pixharvest.com).
+
+- **Hosted service:** https://s-hn.pixharvest.com
+- **MCP endpoint:** `https://s-hn.pixharvest.com/mcp`
+- **Official MCP Registry:** `io.github.contentforge-press/hn-intel`
+- **npm CLI:** publishing shortly (use the JSON config below)
+
+## Try it now
+
+Open a **free, no-key snapshot**: https://s-hn.pixharvest.com/v1/snapshot?target=openai
+
+Target format: `?target=openai` (a company, product or keyword)
+
+## Tools
+
+| Tool | Price | Returns |
 |---|---|---|
-| `hn_snapshot` | free | Current mention metrics for one keyword |
-| `hn_changes` | $0.05 | New HN discussions since last fetch |
-| `hn_intel_report` | $0.50 | Summarized report with heat & momentum |
-| `hn_batch_scan` | $0.03 / keyword | Up to 50 keywords |
-| `hn_landscape` | $5 | Rank up to 10 keywords by buzz + momentum |
+| `mention_snapshot` | Free | Total mentions, 7/30-day counts and latest threads |
+| `mention_changes` | $0.05 | New discussions since last fetch; flags hot threads |
+| `mention_intel_report` | $0.50 | Buzz-intelligence report: momentum and top stories |
+| `mention_batch_scan` | $0.03 / keyword | Scan up to 50 keywords |
+| `mention_landscape` | $5 | Rank up to 10 keywords on buzz and momentum |
 
-## Subscriptions
-Pro $99/mo (25 keywords) · Business $499/mo (15) · Enterprise $2000/mo (unlimited).
+## One-call install for MCP clients
 
-## Service
-https://hn-intel.contentforge-press.workers.dev
+Add the remote server manually to any MCP client (Claude Desktop, Cursor, Windsurf, …):
 
-- `GET /llms.txt` · `GET /sitemap.xml` · `GET /.well-known/mcp.json`
-- MCP endpoint: `/mcp` (Streamable HTTP)
+```json
+{
+  "mcpServers": {
+    "hn-intel": {
+      "url": "https://s-hn.pixharvest.com/mcp"
+    }
+  }
+}
+```
 
-Data sourced from the public Hacker News Algolia API.
+Anonymous `initialize` / `tools/list` are free; paid tool calls return an `x402` challenge.
+
+## Pay-per-call (x402)
+
+Call a paid route without payment and you receive `402 Payment Required` with a machine-readable `PAYMENT-REQUIRED` header (x402 v2) plus a v1 JSON body. The agent signs a USDC authorization, retries with the payment header, and the request settles on Base.
+
+## Monthly plans
+
+Same four tiers on every product — the same access key unlocks all five feeds:
+
+| Hobby | Pro | Business | Enterprise |
+|---|---|---|---|
+| $9/mo | $99/mo | $499/mo | $2000/mo |
+
+Get a key from the [pricing page](https://s-hn.pixharvest.com/pricing), then pass it as `?key=...` on any call.
+
+## HTTP quick start
+
+```bash
+# free snapshot
+curl "https://s-hn.pixharvest.com/v1/snapshot?target=REPLACE_TARGET"
+
+# paid call — returns 402 with the x402 challenge
+curl -i "https://s-hn.pixharvest.com/v1/changes?target=REPLACE_TARGET"
+```
+
+## Links
+
+- Company hub: https://pixharvest.com
+- GitHub: https://github.com/contentforge-press
+- Contact: contentforge.press@outlook.com
 
 ## License
-MIT
+
+MIT — self-host, modify and run it yourself. The hosted service and its data are provided as-is.
