@@ -1,0 +1,119 @@
+{
+  "identifier": "contentforge-press-hn-intel",
+  "name": "HackerNews Mention Intelligence",
+  "version": "1.0.0",
+  "description": "Monitor brand/product/keyword mentions on Hacker News — new threads, points, momentum. Free snapshot; paid buzz reports. x402 USDC on Base.",
+  "category": "productivity",
+  "homepage": "https://github.com/contentforge-press/hackernews-mention-intelligence",
+  "cloudEndpoint": "https://s-hn.pixharvest.com/mcp",
+  "icon": "📰",
+  "tags": [
+    "hackernews",
+    "mentions",
+    "buzz",
+    "monitoring",
+    "keywords",
+    "x402",
+    "usdc"
+  ],
+  "localizations": [
+    {
+      "locale": "zh-CN",
+      "name": "HackerNews 提及情报",
+      "description": "监控品牌/产品/关键词在 Hacker News 的提及、新帖与热度。免费快照；付费热度报告。",
+      "tags": [
+        "hackernews",
+        "提及",
+        "热度",
+        "监控",
+        "关键词",
+        "x402"
+      ]
+    }
+  ],
+  "tools": [
+    {
+      "name": "mention_snapshot",
+      "description": "FREE. Total mentions, 7/30-day counts and latest threads.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "target"
+        ]
+      }
+    },
+    {
+      "name": "mention_changes",
+      "description": "PAID ($0.05 USDC on Base via x402). New discussions since last fetch; flags hot threads.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "target"
+        ]
+      }
+    },
+    {
+      "name": "mention_intel_report",
+      "description": "PAID ($0.50 USDC on Base via x402). Buzz-intelligence report: momentum and top stories.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "target"
+        ]
+      }
+    },
+    {
+      "name": "mention_batch_scan",
+      "description": "PAID ($0.03 per keyword USDC on Base via x402). Scan up to 50 keywords.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "targets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "keywords"
+          }
+        },
+        "required": [
+          "targets"
+        ]
+      }
+    },
+    {
+      "name": "mention_landscape",
+      "description": "PAID ($5 USDC on Base via x402). Rank up to 10 keywords on buzz and momentum.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "targets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "keywords"
+          }
+        },
+        "required": [
+          "targets"
+        ]
+      }
+    }
+  ]
+}
