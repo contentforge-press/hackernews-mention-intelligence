@@ -1,6 +1,6 @@
 // HackerNews Mention Change Intelligence —— 适配器（HackerNews / Algolia）
 // 监控某公司/产品/关键词在 HN 的新讨论、热度与趋势。
-import { renderHome, renderPricing, renderDashboard, renderLegal, renderStatus } from './pages.js';
+import { renderHome, renderPricing, renderDashboard, renderLegal, renderStatus, renderChangelog } from './pages.js';
 
 const ID = 'hn-intel';
 const TITLE = 'HackerNews Mention Intelligence';
@@ -179,5 +179,5 @@ export const adapter = {
     }),
 
     STATUS_TARGET: 'openai',
-    renderStatus, renderHome, renderPricing, renderDashboard, renderLegal,
+    renderStatus, renderChangelog, renderHome, renderPricing, renderDashboard, renderLegal,
 };

@@ -5,6 +5,8 @@
 export const json = (data, status = 200, headers = {}) =>
     new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json; charset=utf-8', ...headers } });
 
+import { telemetry, readTelemetry } from './telemetry.js';
+
 const b64 = (o) => btoa(JSON.stringify(o));
 const b64decode = (s) => JSON.parse(atob(s));
 
@@ -407,10 +409,13 @@ export function createServer(A, cfg) {
         const skv = env[cfg.SHARED_BINDING] || kv;
 
         if (p === '/') return html(A.renderHome());
+        if (p === '/changelog') return html(A.renderChangelog(cfg.TITLE || cfg.NAME));
         if (p === '/pricing') return html(A.renderPricing(Plans));
         if (p === '/dashboard') return html(A.renderDashboard());
         if (p === '/health') return json({ ok: true });
         if (p === '/status') return html(A.renderStatus(cfg.TITLE || cfg.NAME, cfg.STATUS_TARGET || A.STATUS_TARGET || ''));
+        if (p === '/favicon.png') { const { FAVICON_B64 } = await import('./brand.js'); return new Response(Uint8Array.from(atob(FAVICON_B64), c => c.charCodeAt(0)), { headers: { 'content-type': 'image/png', 'cache-control': 'public, max-age=86400' } }); }
+        if (p === '/og.png') { const { OG_B64 } = await import('./brand.js'); return new Response(Uint8Array.from(atob(OG_B64), c => c.charCodeAt(0)), { headers: { 'content-type': 'image/png', 'cache-control': 'public, max-age=86400' } }); }
         if (p === '/llms.txt') return new Response(A.llmsTxt(cfg), { headers: { 'content-type': 'text/plain' } });
         if (p === '/docs') return new Response(A.docsMd(cfg), { headers: { 'content-type': 'text/markdown; charset=utf-8' } });
         if (p === '/robots.txt') return new Response('User-agent: *\nAllow: /\n', { headers: { 'content-type': 'text/plain' } });
@@ -448,7 +453,8 @@ export function createServer(A, cfg) {
         if (p === '/v1/watch/refresh') return watchRefresh(url, request, kv);
         if (p === '/v1/admin/stats') {
             if ((request.headers.get('x-admin-key') || url.searchParams.get('key')) !== cfg.ADMIN_KEY) return json({ error: 'forbidden' }, 403);
-            return json({ ok: true });
+            const days = parseInt(url.searchParams.get('days') || '7');
+            return json({ ok: true, telemetry: await readTelemetry(kv, days) });
         }
         return json({ error: 'not_found' }, 404);
     }
@@ -461,7 +467,11 @@ export function createServer(A, cfg) {
                 r.headers.set('access-control-allow-origin', '*');
                 r.headers.set('X-Content-Type-Options', 'nosniff');
                 return r;
-            } catch (e) { console.error(e); return json({ error: 'internal_error' }, 500); }
+            } catch (e) {
+                console.error(e);
+                try { const kv0 = env[cfg.KV_BINDING]; await telemetry.http5xx(kv0); } catch {}
+                return json({ error: 'internal_error' }, 500);
+            }
         },
         async scheduled(event, env, ctx) { ctx.waitUntil(scheduledScan(A, cfg, env)); },
     };
