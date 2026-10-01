@@ -7,6 +7,37 @@ export const json = (data, status = 200, headers = {}) =>
 
 import { telemetry, readTelemetry } from './telemetry.js';
 
+// ERC-8004 / The Spawn 风格的机器可读 agent 元数据。
+// 不依赖链上 mint；indexer/agent/人可直接发现能力、端点与付费方式。
+export function buildAgentMeta(cfg, A, origin) {
+    const host = origin ? origin.replace(/^https?:\/\//, '') : cfg.HOST;
+    const base = origin || `https://${host}`;
+    const name = A.title || cfg.TITLE || cfg.NAME || 'Change Intelligence';
+    const longDesc = cfg.AGENT_DESCRIPTION ||
+        `${name} for autonomous AI agents. Free public snapshot of ${cfg.DOMAIN_LABEL || 'public targets'}; paid change detection, intel reports, batch scans and landscape reports. Paid calls settle USDC on Base via x402 (P2P, 0% commission). One access key works across the whole change-intelligence family. Free CLI quota, Hobby $9/mo and higher plans.`;
+    return {
+        name,
+        description: longDesc,
+        image: `${base}/favicon.png`,
+        x402Support: true,
+        payment: {
+            scheme: 'exact', network: 'eip155:8453', asset: cfg.USDC_BASE,
+            payTo: cfg.PAY_TO, facilitator: cfg.FACILITATOR,
+            pricing: {
+                changes: cfg.PRICE_CHANGES_USD, intel: cfg.PRICE_INTEL_USD,
+                batchPerTarget: cfg.PRICE_PER_TARGET_USD, landscape: cfg.PRICE_LANDSCAPE_USD,
+            },
+        },
+        services: [
+            { name: 'MCP', endpoint: `${base}/mcp`, version: '2025-06-18', description: `${name} — Streamable HTTP MCP with free and x402-paid tools.` },
+            { name: 'API', endpoint: `${base}/v1/cli`, description: 'CLI/agent endpoint: free anonymous quota, then x402 per call.' },
+            { name: 'x402', endpoint: `${base}/.well-known/x402`, description: 'Machine-readable payment requirements.' },
+            { name: 'web', endpoint: `${base}/`, description: 'Human docs, pricing, dashboard, demos.' },
+            { name: 'pricing', endpoint: `${base}/pricing`, description: 'Hobby $9, Pro $99, Business $499, Enterprise $2000 per month.' },
+        ],
+    };
+}
+
 const b64 = (o) => btoa(JSON.stringify(o));
 const b64decode = (s) => JSON.parse(atob(s));
 
@@ -120,8 +151,8 @@ async function getWatch(kv, key) {
     const raw = await kv.get(`watch-${key}`);
     return raw ? JSON.parse(raw) : { targets: [], webhookUrl: '', alertEmail: '', updatedAt: null };
 }
-async function watchView(A, kv, key) {
-    const sub = await loadSub(kv, key);
+async function watchView(A, kv, key, skv) {
+    const sub = await loadSub(skv || kv, key);
     if (!sub) return { error: 'invalid_key', status: 401 };
     const wl = await getWatch(kv, key);
     return {
@@ -131,15 +162,15 @@ async function watchView(A, kv, key) {
     };
 }
 
-async function dispatchAlerts(A, cfg, wl, alerts) {
+async function dispatchAlerts(A, cfg, wl, alerts, env) {
     if (!alerts.length) return;
     if (wl.webhookUrl) for (const a of alerts) try {
         await fetch(wl.webhookUrl, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ source: A.id, ...a }) });
     } catch {}
-    if (wl.alertEmail && cfg.RESEND_API_KEY) try {
+    if (wl.alertEmail && (cfg.RESEND_API_KEY || (env && env.RESEND_API_KEY))) try {
         const total = alerts.reduce((n, a) => n + a.changes.length, 0);
         await fetch('https://api.resend.com/emails', {
-            method: 'POST', headers: { authorization: 'Bearer ' + cfg.RESEND_API_KEY, 'content-type': 'application/json' },
+            method: 'POST', headers: { authorization: 'Bearer ' + (cfg.RESEND_API_KEY || env.RESEND_API_KEY), 'content-type': 'application/json' },
             body: JSON.stringify({ from: `${A.title} <alerts@${cfg.MAIL_DOMAIN || 'example.com'}>`, to: [wl.alertEmail], subject: `🔔 ${total} change(s) · ${A.title}`, html: A.emailHtml ? A.emailHtml(alerts) : JSON.stringify(alerts) }),
         });
     } catch {}
@@ -173,7 +204,7 @@ async function scheduledScan(A, cfg, env) {
                 const wl = await getWatch(kv, key); if (!wl.targets.length) continue;
                 const alerts = await refreshWatchlist(A, cfg, kv, wl);
                 await kv.put(`watch-${key}`, JSON.stringify(wl));
-                await dispatchAlerts(A, cfg, wl, alerts); refreshed++;
+                await dispatchAlerts(A, cfg, wl, alerts, env); refreshed++;
             } catch {}
         }
         cursor = l.cursor; if (scanned >= 500) break;
@@ -264,9 +295,9 @@ export function createServer(A, cfg) {
         return json({ ok: true, accessKey, plan: plan.id, expiresAt });
     }
 
-    async function watchAdd(url, request, kv) {
+    async function watchAdd(url, request, kv, skv) {
         const key = url.searchParams.get('key');
-        const sub = await loadSub(kv, key);
+        const sub = await loadSub(skv || kv, key);
         if (!sub) return json({ error: 'invalid_key' }, 401);
         if (!sub.active) return json({ error: 'subscription_expired' }, 402);
         const body = await readJson(request);
@@ -277,20 +308,20 @@ export function createServer(A, cfg) {
         if (wl.targets.some(t => t.target === parsed.handle && t.platform === parsed.platform)) return json({ error: 'already_added' }, 400);
         wl.targets.push({ target: parsed.handle, platform: parsed.platform, addedAt: new Date().toISOString(), lastChecked: null, lastChanges: [] });
         await kv.put(`watch-${key}`, JSON.stringify(wl));
-        return json(await watchView(A, kv, key));
+        return json(await watchView(A, kv, key, skv));
     }
-    async function watchRemove(url, request, kv) {
+    async function watchRemove(url, request, kv, skv) {
         const key = url.searchParams.get('key');
-        if (!(await loadSub(kv, key))) return json({ error: 'invalid_key' }, 401);
+        if (!(await loadSub(skv || kv, key))) return json({ error: 'invalid_key' }, 401);
         const body = await readJson(request);
         const wl = await getWatch(kv, key);
         wl.targets = wl.targets.filter(t => t.target !== A.safeHandle(body.target));
         await kv.put(`watch-${key}`, JSON.stringify(wl));
-        return json(await watchView(A, kv, key));
+        return json(await watchView(A, kv, key, skv));
     }
-    async function watchSettings(url, request, kv) {
+    async function watchSettings(url, request, kv, skv) {
         const key = url.searchParams.get('key');
-        if (!(await loadSub(kv, key))) return json({ error: 'invalid_key' }, 401);
+        if (!(await loadSub(skv || kv, key))) return json({ error: 'invalid_key' }, 401);
         const body = await readJson(request);
         const webhookUrl = (body.webhookUrl || '').trim().slice(0, 500);
         const alertEmail = (body.alertEmail || '').trim().slice(0, 200);
@@ -299,19 +330,19 @@ export function createServer(A, cfg) {
         const wl = await getWatch(kv, key);
         wl.webhookUrl = webhookUrl; wl.alertEmail = alertEmail;
         await kv.put(`watch-${key}`, JSON.stringify(wl));
-        return json(await watchView(A, kv, key));
+        return json(await watchView(A, kv, key, skv));
     }
-    async function watchRefresh(url, request, kv) {
+    async function watchRefresh(url, request, kv, skv) {
         const key = url.searchParams.get('key');
-        const sub = await loadSub(kv, key);
+        const sub = await loadSub(skv || kv, key);
         if (!sub) return json({ error: 'invalid_key' }, 401);
         if (!sub.active) return json({ error: 'subscription_expired' }, 402);
         const wl = await getWatch(kv, key);
         const only = url.searchParams.get('target');
         const alerts = await refreshWatchlist(A, cfg, kv, wl, only);
         await kv.put(`watch-${key}`, JSON.stringify(wl));
-        await dispatchAlerts(A, cfg, wl, alerts);
-        return json(await watchView(A, kv, key));
+        await dispatchAlerts(A, cfg, wl, alerts, env);
+        return json(await watchView(A, kv, key, skv));
     }
 
     // ---- MCP ----
@@ -346,7 +377,7 @@ export function createServer(A, cfg) {
     // ---------- 免费 CLI：白嫖→撞墙→$9 矮台阶 ----------
     async function handleCli(A, cfg, request, url, kv) {
         const kind = url.searchParams.get('tool');
-        const toolMap = { changes: 'mention_changes', intel: 'mention_intel_report', batch: 'mention_batch_scan', landscape: 'mention_landscape' };
+        const toolMap = { changes: 'repo_changes', intel: 'repo_intel_report', batch: 'repo_batch_scan', landscape: 'repo_landscape' };
         const def = A.mcpTools.find(t => t.name === toolMap[kind]);
         if (!def) return json({ error: 'invalid_tool', tools: Object.keys(toolMap) }, 400);
 
@@ -421,6 +452,7 @@ export function createServer(A, cfg) {
         if (p === '/robots.txt') return new Response('User-agent: *\nAllow: /\n', { headers: { 'content-type': 'text/plain' } });
         if (p === '/sitemap.xml') return new Response(A.sitemapXml(cfg), { headers: { 'content-type': 'application/xml' } });
         if (p === '/.well-known/x402') return json(A.wellKnown(cfg));
+        if (p === '/.well-known/agent.json') return json(buildAgentMeta(cfg, A, url.origin));
         if (p === '/.well-known/glama.json') return json({ $schema: 'https://glama.ai/mcp/schemas/connector.json', maintainers: [{ email: cfg.CONTACT_EMAIL }] });
         if (p === '/privacy') return html(A.renderLegal('Privacy Policy', cfg));
         if (p === '/terms') return html(A.renderLegal('Terms of Service', cfg));
@@ -445,12 +477,12 @@ export function createServer(A, cfg) {
             if (!raw) return json({ error: 'order_not_found' }, 404);
             return json(await checkDirectOrder(JSON.parse(raw), cfg, kv, A, skv));
         }
-        if (p === '/v1/watch') return json(await watchView(A, kv, url.searchParams.get('key')));
+        if (p === '/v1/watch') return json(await watchView(A, kv, url.searchParams.get('key'), skv));
         if (p === '/v1/cli') return handleCli(A, cfg, request, url, kv);
-        if (p === '/v1/watch/add') return watchAdd(url, request, kv);
-        if (p === '/v1/watch/remove') return watchRemove(url, request, kv);
-        if (p === '/v1/watch/settings') return watchSettings(url, request, kv);
-        if (p === '/v1/watch/refresh') return watchRefresh(url, request, kv);
+        if (p === '/v1/watch/add') return watchAdd(url, request, kv, skv);
+        if (p === '/v1/watch/remove') return watchRemove(url, request, kv, skv);
+        if (p === '/v1/watch/settings') return watchSettings(url, request, kv, skv);
+        if (p === '/v1/watch/refresh') return watchRefresh(url, request, kv, skv);
         if (p === '/v1/admin/stats') {
             if ((request.headers.get('x-admin-key') || url.searchParams.get('key')) !== cfg.ADMIN_KEY) return json({ error: 'forbidden' }, 403);
             const days = parseInt(url.searchParams.get('days') || '7');
