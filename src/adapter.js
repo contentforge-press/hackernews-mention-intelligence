@@ -103,7 +103,7 @@ export const adapter = {
     safeHandle: safeKw, parseTarget, fetchSnapshot, diff, kvKey,
     async snapshot(t) {
         const s = await fetchSnapshot(t);
-        return { platform: s.platform, target: s.handle, keyword: s.meta.keyword, totalMentions: s.meta.totalMentions, last7d: s.meta.last7d, last30d: s.meta.last30d, latest: s.items.slice(0, 8).map(x => ({ title: x.title, points: x.points, comments: x.comments })) };
+        return { platform: s.platform, target: s.handle, keyword: s.meta.keyword, totalMentions: s.meta.totalMentions, last7d: s.meta.last7d, last30d: s.meta.last30d, latest: s.items.slice(0, 8).map(x => ({ title: x.title, points: x.points, comments: x.comments })), upgrade: 'Full change report — $0.05 USDC (Base) via x402 — GET /v1/cli?tool=changes&target=' + s.handle };
     },
     planFeatures: {
         pro: ['Track up to 25 keywords', 'New mention alerts', 'Hot-discussion flag', 'All paid MCP tools', 'Email + webhook'],
