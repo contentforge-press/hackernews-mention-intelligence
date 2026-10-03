@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "hackernews-mention-intelligence": {
+      "type": "streamableHttp",
+      "url": "https://s-hn.pixharvest.com/mcp"
+    }
+  }
+}

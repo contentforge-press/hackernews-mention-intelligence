@@ -1,0 +1,41 @@
+{
+  "name": "hackernews-mention-intelligence",
+  "version": "1.0.0",
+  "description": "Remote MCP server for Hacker News mention intelligence: who is talking about a topic/company, before the market sees it. Free snapshot; paid change detection in USDC via x402 on Base. Use npx hackernews-mention-intelligence to print client config.",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "hackernews",
+    "hacker-news",
+    "hn",
+    "mention-tracking",
+    "buzz",
+    "mindshare",
+    "x402",
+    "usdc",
+    "ai-agents"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/contentforge-press/hackernews-mention-intelligence#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/contentforge-press/hackernews-mention-intelligence.git",
+    "directory": "npm"
+  },
+  "bugs": {
+    "url": "https://github.com/contentforge-press/hackernews-mention-intelligence/issues"
+  },
+  "bin": {
+    "hackernews-mention-intelligence": "bin.js"
+  },
+  "files": [
+    "bin.js",
+    "config.json",
+    "mcp.json",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "mcpName": "io.github.contentforge-press/hn-intel"
+}
